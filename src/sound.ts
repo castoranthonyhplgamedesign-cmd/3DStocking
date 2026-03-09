@@ -302,3 +302,16 @@ export function setSfxVolume(vol: number): void {
 export function unlockAudio(): void {
   getCtx();
 }
+
+// Pause/resume all audio (required by ad networks for viewability)
+export function pauseAudio(): void {
+  if (ctx && ctx.state === "running") {
+    ctx.suspend();
+  }
+}
+
+export function resumeAudio(): void {
+  if (ctx && ctx.state === "suspended") {
+    ctx.resume();
+  }
+}

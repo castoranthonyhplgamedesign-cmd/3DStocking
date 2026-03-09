@@ -12,7 +12,8 @@ import "@babylonjs/core/Lights/directionalLight";
 import { createScene } from "./scene";
 import { createUI } from "./ui";
 import { initGame } from "./game";
-import { waitForMRAIDReady, isMRAID } from "./mraid";
+import { waitForMRAIDReady, isMRAID, onViewableChange, isCurrentlyViewable } from "./mraid";
+import { pauseAudio, resumeAudio } from "./sound";
 
 async function boot() {
   // Wait for MRAID container if running inside an ad network
@@ -26,6 +27,29 @@ async function boot() {
   const { engine, scene, camera } = createScene(canvas);
   const ui = createUI();
   initGame(scene, engine, camera, ui);
+
+  // MRAID viewability: audio MUST stop when ad is not visible (top rejection reason)
+  onViewableChange((isViewable) => {
+    if (isViewable) {
+      resumeAudio();
+    } else {
+      pauseAudio();
+    }
+  });
+
+  // If MRAID and not currently viewable at boot, pause audio immediately
+  if (isMRAID() && !isCurrentlyViewable()) {
+    pauseAudio();
+  }
+
+  // Also handle browser tab visibility (non-MRAID environments)
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      pauseAudio();
+    } else {
+      resumeAudio();
+    }
+  });
 }
 
 boot();

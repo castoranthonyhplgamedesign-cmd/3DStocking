@@ -45,7 +45,7 @@ import {
   updateActivePowerUps,
 } from "./ui";
 import { isHighScore, saveHighScore, getHighScores } from "./highscore";
-import { isPlayableMode, showCTA } from "./cta";
+import { isPlayableMode, showCTA, openStore } from "./cta";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import {
   burstLanding,
@@ -153,9 +153,10 @@ export function initGame(
     }
   });
 
-  // Restart button
+  // Restart button — also opens store as CTA
   ui.restartButton.onPointerUpObservable.add(() => {
     if (ctx.state === "GAME_OVER") {
+      openStore();
       hideGameOver(ui);
       resetGame(ctx);
       showStartScreen(ui);
@@ -413,20 +414,17 @@ function gameOver(ctx: GameContext): void {
 
   // Playable ad mode: show CTA end card
   if (isPlayableMode()) {
-    showCTA(ctx.score, () => {
-      resetGame(ctx);
-      showStartScreen(ctx.ui);
-      ctx.state = "READY";
-    });
+    showCTA(ctx.score);
     return;
   }
 
-  // Normal mode: high score flow
+  // Normal mode: high score flow + open store on every action
   if (isHighScore(ctx.score)) {
     showNameInput(ctx.ui, ctx.score);
     ctx.ui.onNameSubmit((name) => {
       const scores = saveHighScore(name, ctx.score);
       showGameOver(ctx.ui, ctx.score, scores);
+      openStore();
     });
   } else {
     showGameOver(ctx.ui, ctx.score, getHighScores());
@@ -511,5 +509,5 @@ function resetGame(ctx: GameContext): void {
     ctx.axis
   );
 
-  ctx.scene.clearColor = new Color4(0.95, 0.92, 0.88, 1);
+  ctx.scene.clearColor = new Color4(0.53, 0.81, 0.98, 1);
 }

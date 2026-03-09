@@ -5,6 +5,7 @@ import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 import { DirectionalLight } from "@babylonjs/core/Lights/directionalLight";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Color4, Color3 } from "@babylonjs/core/Maths/math.color";
+import { createClouds } from "./clouds";
 
 export interface SceneContext {
   engine: Engine;
@@ -17,11 +18,8 @@ function getResponsiveRadius(): number {
   const h = window.innerHeight;
   const aspect = w / h;
 
-  // Portrait (mobile): pull camera back so blocks aren't cropped
   if (aspect < 0.7) return 18;
-  // Narrow portrait
   if (aspect < 1) return 16;
-  // Landscape / desktop
   return 14;
 }
 
@@ -32,14 +30,15 @@ export function createScene(canvas: HTMLCanvasElement): SceneContext {
     adaptToDeviceRatio: true,
   });
   const scene = new Scene(engine);
-  scene.clearColor = new Color4(0.95, 0.92, 0.88, 1); // warm cream
 
-  // Camera: isometric-ish view, locked controls
+  // Sky blue background
+  scene.clearColor = new Color4(0.53, 0.81, 0.98, 1);
+
   const radius = getResponsiveRadius();
   const camera = new ArcRotateCamera(
     "camera",
-    -Math.PI / 4,     // alpha (horizontal rotation)
-    Math.PI / 3,      // beta (vertical tilt)
+    -Math.PI / 4,
+    Math.PI / 3,
     radius,
     new Vector3(0, 2, 0),
     scene
@@ -48,14 +47,17 @@ export function createScene(canvas: HTMLCanvasElement): SceneContext {
   camera.upperRadiusLimit = radius;
   camera.detachControl();
 
-  // Ambient light
+  // Bright sky ambient light
   const hemiLight = new HemisphericLight("hemi", new Vector3(0, 1, 0), scene);
-  hemiLight.intensity = 0.7;
-  hemiLight.groundColor = new Color3(0.4, 0.4, 0.45);
+  hemiLight.intensity = 0.85;
+  hemiLight.groundColor = new Color3(0.6, 0.65, 0.75);
 
-  // Directional light for depth
+  // Sun-like directional light
   const dirLight = new DirectionalLight("dir", new Vector3(-1, -2, 1), scene);
-  dirLight.intensity = 0.5;
+  dirLight.intensity = 0.6;
+
+  // Floating clouds
+  createClouds(scene);
 
   // Handle resize + orientation change
   const onResize = () => {
@@ -67,7 +69,6 @@ export function createScene(canvas: HTMLCanvasElement): SceneContext {
   };
   window.addEventListener("resize", onResize);
   window.addEventListener("orientationchange", () => {
-    // Delay to let the browser settle after orientation change
     setTimeout(onResize, 100);
   });
 

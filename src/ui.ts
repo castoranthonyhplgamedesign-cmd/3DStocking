@@ -24,11 +24,8 @@ export interface UIElements {
   refresh: () => void;
 }
 
-function scale(base: number): number {
-  const minDim = Math.min(window.innerWidth, window.innerHeight);
-  const factor = Math.max(0.6, Math.min(1.4, minDim / 400));
-  return Math.round(base * factor);
-}
+// All sizes are relative to this reference width — GUI auto-scales to actual screen
+const REF_WIDTH = 600;
 
 function formatLeaderboard(scores: HighScoreEntry[], maxShow = 5): string {
   if (scores.length === 0) return "";
@@ -103,18 +100,18 @@ function createNameInputOverlay(): { overlay: HTMLDivElement; input: HTMLInputEl
 
 export function createUI(): UIElements {
   const ui = AdvancedDynamicTexture.CreateFullscreenUI("ui");
-  ui.idealWidth = 0;
-  ui.idealHeight = 0;
+  // Let Babylon.js GUI auto-scale everything relative to reference width
+  ui.idealWidth = REF_WIDTH;
 
   // Score display
   const scoreText = new TextBlock("score", "0");
   scoreText.color = "#2d2d2d";
-  scoreText.fontSize = scale(72);
+  scoreText.fontSize = 96;
   scoreText.fontFamily = "Arial, sans-serif";
   scoreText.fontWeight = "bold";
   scoreText.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
-  scoreText.top = `${scale(30)}px`;
-  scoreText.outlineWidth = 4;
+  scoreText.top = "40px";
+  scoreText.outlineWidth = 5;
   scoreText.outlineColor = "rgba(255,255,255,0.5)";
   scoreText.isVisible = false;
   ui.addControl(scoreText);
@@ -122,12 +119,12 @@ export function createUI(): UIElements {
   // Combo text (center, animated popup)
   const comboText = new TextBlock("combo", "");
   comboText.color = "#FF6B6B";
-  comboText.fontSize = scale(36);
+  comboText.fontSize = 48;
   comboText.fontFamily = "Arial, sans-serif";
   comboText.fontWeight = "bold";
   comboText.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
-  comboText.top = `${-scale(40)}px`;
-  comboText.outlineWidth = 3;
+  comboText.top = "-50px";
+  comboText.outlineWidth = 4;
   comboText.outlineColor = "rgba(255,255,255,0.6)";
   comboText.isVisible = false;
   ui.addControl(comboText);
@@ -135,12 +132,12 @@ export function createUI(): UIElements {
   // Power-up pickup text (center, brief notification)
   const powerUpText = new TextBlock("puText", "");
   powerUpText.color = "#6C5CE7";
-  powerUpText.fontSize = scale(28);
+  powerUpText.fontSize = 38;
   powerUpText.fontFamily = "Arial, sans-serif";
   powerUpText.fontWeight = "bold";
   powerUpText.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
-  powerUpText.top = `${scale(20)}px`;
-  powerUpText.outlineWidth = 3;
+  powerUpText.top = "30px";
+  powerUpText.outlineWidth = 4;
   powerUpText.outlineColor = "rgba(255,255,255,0.6)";
   powerUpText.isVisible = false;
   ui.addControl(powerUpText);
@@ -148,12 +145,12 @@ export function createUI(): UIElements {
   // Active power-ups indicator (top-right)
   const activePowerUpsText = new TextBlock("activePU", "");
   activePowerUpsText.color = "#2d2d2d";
-  activePowerUpsText.fontSize = scale(14);
+  activePowerUpsText.fontSize = 20;
   activePowerUpsText.fontFamily = "Arial, sans-serif";
   activePowerUpsText.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
   activePowerUpsText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_RIGHT;
-  activePowerUpsText.top = `${scale(30)}px`;
-  activePowerUpsText.left = `${-scale(12)}px`;
+  activePowerUpsText.top = "40px";
+  activePowerUpsText.left = "-16px";
   activePowerUpsText.outlineWidth = 2;
   activePowerUpsText.outlineColor = "rgba(255,255,255,0.5)";
   activePowerUpsText.isVisible = false;
@@ -166,29 +163,29 @@ export function createUI(): UIElements {
 
   const title = new TextBlock("title", "STACK");
   title.color = "#2d2d2d";
-  title.fontSize = scale(72);
+  title.fontSize = 96;
   title.fontFamily = "Arial, sans-serif";
   title.fontWeight = "bold";
-  title.height = `${scale(90)}px`;
-  title.outlineWidth = 4;
+  title.height = "120px";
+  title.outlineWidth = 5;
   title.outlineColor = "rgba(255,255,255,0.5)";
   startPanel.addControl(title);
 
   const tapText = new TextBlock("tap", "Tap to Start");
   tapText.color = "rgba(60,60,60,0.8)";
-  tapText.fontSize = scale(22);
+  tapText.fontSize = 30;
   tapText.fontFamily = "Arial, sans-serif";
-  tapText.height = `${scale(36)}px`;
+  tapText.height = "50px";
   startPanel.addControl(tapText);
 
   const startLeaderboard = new TextBlock("startLb", "");
   startLeaderboard.color = "#2d2d2d";
-  startLeaderboard.fontSize = scale(16);
+  startLeaderboard.fontSize = 22;
   startLeaderboard.fontFamily = "Arial, sans-serif";
   startLeaderboard.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
   startLeaderboard.textWrapping = true;
-  startLeaderboard.height = `${scale(130)}px`;
-  startLeaderboard.top = `${scale(20)}px`;
+  startLeaderboard.height = "180px";
+  startLeaderboard.top = "30px";
   startLeaderboard.outlineWidth = 0;
   startPanel.addControl(startLeaderboard);
 
@@ -200,40 +197,40 @@ export function createUI(): UIElements {
 
   const goTitle = new TextBlock("goTitle", "GAME OVER");
   goTitle.color = "#2d2d2d";
-  goTitle.fontSize = scale(54);
+  goTitle.fontSize = 72;
   goTitle.fontFamily = "Arial, sans-serif";
   goTitle.fontWeight = "bold";
-  goTitle.height = `${scale(70)}px`;
-  goTitle.outlineWidth = 4;
+  goTitle.height = "95px";
+  goTitle.outlineWidth = 5;
   goTitle.outlineColor = "rgba(255,255,255,0.5)";
   gameOverPanel.addControl(goTitle);
 
   const finalScoreText = new TextBlock("finalScore", "Score: 0");
   finalScoreText.color = "#2d2d2d";
-  finalScoreText.fontSize = scale(32);
+  finalScoreText.fontSize = 44;
   finalScoreText.fontFamily = "Arial, sans-serif";
-  finalScoreText.height = `${scale(50)}px`;
+  finalScoreText.height = "65px";
   finalScoreText.outlineWidth = 3;
   finalScoreText.outlineColor = "rgba(255,255,255,0.5)";
   gameOverPanel.addControl(finalScoreText);
 
   const leaderboardText = new TextBlock("leaderboard", "");
   leaderboardText.color = "#2d2d2d";
-  leaderboardText.fontSize = scale(15);
+  leaderboardText.fontSize = 22;
   leaderboardText.fontFamily = "Arial, sans-serif";
   leaderboardText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
   leaderboardText.textWrapping = true;
-  leaderboardText.height = `${scale(120)}px`;
-  leaderboardText.top = `${scale(4)}px`;
+  leaderboardText.height = "170px";
+  leaderboardText.top = "6px";
   gameOverPanel.addControl(leaderboardText);
 
   const restartButton = Button.CreateSimpleButton("restart", "PLAY AGAIN");
-  restartButton.width = `${scale(180)}px`;
-  restartButton.height = `${scale(48)}px`;
+  restartButton.width = "240px";
+  restartButton.height = "65px";
   restartButton.color = "#2d2d2d";
   restartButton.background = "rgba(0,0,0,0.1)";
-  restartButton.cornerRadius = scale(10);
-  restartButton.fontSize = scale(18);
+  restartButton.cornerRadius = 14;
+  restartButton.fontSize = 26;
   restartButton.fontFamily = "Arial, sans-serif";
   restartButton.thickness = 2;
   gameOverPanel.addControl(restartButton);
@@ -263,37 +260,9 @@ export function createUI(): UIElements {
     submitCallback = callback;
   };
 
-  // Refresh function
-  const refresh = () => {
-    scoreText.fontSize = scale(72);
-    scoreText.top = `${scale(30)}px`;
-    comboText.fontSize = scale(36);
-    comboText.top = `${-scale(40)}px`;
-    powerUpText.fontSize = scale(28);
-    powerUpText.top = `${scale(20)}px`;
-    activePowerUpsText.fontSize = scale(14);
-    activePowerUpsText.top = `${scale(30)}px`;
-    activePowerUpsText.left = `${-scale(12)}px`;
-    title.fontSize = scale(72);
-    title.height = `${scale(90)}px`;
-    tapText.fontSize = scale(22);
-    tapText.height = `${scale(36)}px`;
-    startLeaderboard.fontSize = scale(16);
-    startLeaderboard.height = `${scale(130)}px`;
-    startLeaderboard.top = `${scale(20)}px`;
-    goTitle.fontSize = scale(54);
-    goTitle.height = `${scale(70)}px`;
-    finalScoreText.fontSize = scale(32);
-    finalScoreText.height = `${scale(50)}px`;
-    leaderboardText.fontSize = scale(15);
-    leaderboardText.height = `${scale(120)}px`;
-    restartButton.width = `${scale(180)}px`;
-    restartButton.height = `${scale(48)}px`;
-    restartButton.fontSize = scale(18);
-  };
-
-  window.addEventListener("resize", refresh);
-  window.addEventListener("orientationchange", () => setTimeout(refresh, 150));
+  // Refresh is no longer needed since idealWidth handles scaling,
+  // but keep the interface for compatibility
+  const refresh = () => {};
 
   return {
     scoreText, startPanel, startLeaderboard, gameOverPanel,
@@ -312,7 +281,6 @@ export function showComboText(ui: UIElements, comboCount: number): void {
   const multiplier = 1 + (comboCount - 1) * 0.5;
   ui.comboText.text = `PERFECT x${comboCount}!  (${multiplier.toFixed(1)}x)`;
   ui.comboText.isVisible = true;
-  // Fade out after a moment
   setTimeout(() => { ui.comboText.isVisible = false; }, 1200);
 }
 
