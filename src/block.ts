@@ -1,10 +1,10 @@
 import { Scene } from "@babylonjs/core/scene";
-import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { BLOCK_HEIGHT, FALL_GRAVITY, SWING_RANGE } from "./constants";
 import { getBlockColor } from "./colors";
+import { createRoundedBox } from "./roundedBox";
 
 export interface BlockState {
   mesh: Mesh;
@@ -37,14 +37,13 @@ export function createBlock(
   axis: "x" | "z"
 ): BlockState {
   const y = layer * BLOCK_HEIGHT;
-  const mesh = MeshBuilder.CreateBox(
+  const mesh = createRoundedBox(
     `block_${layer}`,
     { width, height: BLOCK_HEIGHT, depth },
     scene
   );
   mesh.material = createMaterial(scene, getBlockColor(layer), `mat_${layer}`);
 
-  // Start position: on-axis at swing range, off-axis at previous center
   mesh.position.set(
     axis === "x" ? SWING_RANGE : x,
     y,
@@ -57,7 +56,7 @@ export function createBlock(
 export function createBaseBlock(scene: Scene): BlockState {
   const width = 3;
   const depth = 3;
-  const mesh = MeshBuilder.CreateBox("base", { width, height: BLOCK_HEIGHT, depth }, scene);
+  const mesh = createRoundedBox("base", { width, height: BLOCK_HEIGHT, depth }, scene);
   mesh.material = createMaterial(scene, getBlockColor(0), "mat_base");
   mesh.position.set(0, 0, 0);
   return { mesh, width, depth, x: 0, z: 0, y: 0 };
@@ -81,7 +80,6 @@ export function sliceBlock(
   scene: Scene,
   layer: number
 ): SliceResult | null {
-  // Update current position from mesh
   current.x = current.mesh.position.x;
   current.z = current.mesh.position.z;
 
@@ -100,7 +98,7 @@ export function sliceBlock(
   const overlapRight = Math.min(currentRight, prevRight);
   const overlap = overlapRight - overlapLeft;
 
-  if (overlap <= 0) return null; // Complete miss
+  if (overlap <= 0) return null;
 
   const survivedCenter = (overlapLeft + overlapRight) / 2;
   const survivedSize = overlap;
@@ -111,7 +109,6 @@ export function sliceBlock(
     ? overlapRight + overhangSize / 2
     : overlapLeft - overhangSize / 2;
 
-  // Dispose original
   current.mesh.material?.dispose();
   current.mesh.dispose();
 
@@ -123,7 +120,7 @@ export function sliceBlock(
   const survX = isX ? survivedCenter : current.x;
   const survZ = isX ? current.z : survivedCenter;
 
-  const survMesh = MeshBuilder.CreateBox(
+  const survMesh = createRoundedBox(
     `survived_${layer}`,
     { width: survWidth, height: BLOCK_HEIGHT, depth: survDepth },
     scene
@@ -146,7 +143,7 @@ export function sliceBlock(
   const ohX = isX ? overhangCenter : current.x;
   const ohZ = isX ? current.z : overhangCenter;
 
-  const ohMesh = MeshBuilder.CreateBox(
+  const ohMesh = createRoundedBox(
     `overhang_${layer}`,
     { width: ohWidth, height: BLOCK_HEIGHT, depth: ohDepth },
     scene

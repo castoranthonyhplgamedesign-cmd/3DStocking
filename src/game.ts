@@ -2,11 +2,11 @@ import { Scene } from "@babylonjs/core/scene";
 import { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera";
 import { Engine } from "@babylonjs/core/Engines/engine";
 import { KeyboardEventTypes } from "@babylonjs/core/Events/keyboardEvents";
-import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
 import { getBlockColor } from "./colors";
+import { createRoundedBox } from "./roundedBox";
 import {
   BLOCK_HEIGHT,
   INITIAL_BLOCK_SIZE,
@@ -307,7 +307,7 @@ function dropBlock(ctx: GameContext): void {
     currentBlock.mesh.material?.dispose();
     currentBlock.mesh.dispose();
 
-    const perfectMesh = MeshBuilder.CreateBox(
+    const perfectMesh = createRoundedBox(
       `perfect_${layer}`,
       { width: currentBlock.width, height: BLOCK_HEIGHT, depth: currentBlock.depth },
       scene
@@ -474,7 +474,7 @@ function resetGame(ctx: GameContext): void {
 
   for (let i = 1; i <= STARTING_STACK; i++) {
     const y = i * BLOCK_HEIGHT;
-    const mesh = MeshBuilder.CreateBox(
+    const mesh = createRoundedBox(
       `prestack_${i}`,
       { width: INITIAL_BLOCK_SIZE, height: BLOCK_HEIGHT, depth: INITIAL_BLOCK_SIZE },
       ctx.scene

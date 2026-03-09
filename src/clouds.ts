@@ -16,9 +16,12 @@ interface Cloud {
   driftRadius: number;
 }
 
-const CLOUD_COUNT = 18;
-const CLOUD_MIN_Y = 0;
-const CLOUD_MAX_Y = 45;
+const CLOUD_COUNT = 14;
+const CLOUD_MIN_Y = 2;
+const CLOUD_MAX_Y = 50;
+// Minimum distance from center — keeps clouds away from the tower
+const CLOUD_MIN_DIST = 22;
+const CLOUD_MAX_DIST = 45;
 
 let clouds: Cloud[] = [];
 let cloudMaterial: StandardMaterial | null = null;
@@ -27,9 +30,9 @@ function getCloudMaterial(scene: Scene): StandardMaterial {
   if (!cloudMaterial || cloudMaterial.getScene() === null) {
     cloudMaterial = new StandardMaterial("cloudMat", scene);
     cloudMaterial.diffuseColor = new Color3(1, 1, 1);
-    cloudMaterial.emissiveColor = new Color3(0.7, 0.72, 0.78);
+    cloudMaterial.emissiveColor = new Color3(0.75, 0.78, 0.84);
     cloudMaterial.specularColor = new Color3(0, 0, 0);
-    cloudMaterial.alpha = 0.92;
+    cloudMaterial.alpha = 0.7;
     cloudMaterial.backFaceCulling = false;
   }
   return cloudMaterial;
@@ -39,56 +42,52 @@ function createSingleCloud(scene: Scene, index: number, forceAngle?: number, for
   const root = new Mesh(`cloud_root_${index}`, scene);
   const mat = getCloudMaterial(scene);
 
-  const cloudScale = 1.2 + Math.random() * 1.8;
+  // Smaller clouds so they don't dominate the screen
+  const cloudScale = 0.7 + Math.random() * 0.9;
 
-  // Wide, flat cluster of 8-14 overlapping ellipsoids
-  const puffCount = 8 + Math.floor(Math.random() * 7);
+  // 5-9 overlapping ellipsoids per cloud
+  const puffCount = 5 + Math.floor(Math.random() * 5);
 
   for (let i = 0; i < puffCount; i++) {
-    const diameterXZ = (1.0 + Math.random() * 1.5) * cloudScale;
-    const diameterY = diameterXZ * (0.3 + Math.random() * 0.25);
+    const diameterXZ = (0.8 + Math.random() * 1.0) * cloudScale;
+    const diameterY = diameterXZ * (0.3 + Math.random() * 0.2);
 
     const puff = MeshBuilder.CreateSphere(
       `puff_${index}_${i}`,
-      { diameter: 1, segments: 8 },
+      { diameter: 1, segments: 6 },
       scene
     );
     puff.scaling.set(diameterXZ, diameterY, diameterXZ);
     puff.material = mat;
-
     puff.position.set(
-      (Math.random() - 0.5) * 3.5 * cloudScale,
-      (Math.random() - 0.5) * 0.5 * cloudScale,
-      (Math.random() - 0.5) * 2.5 * cloudScale
+      (Math.random() - 0.5) * 2.5 * cloudScale,
+      (Math.random() - 0.5) * 0.4 * cloudScale,
+      (Math.random() - 0.5) * 1.8 * cloudScale
     );
     puff.parent = root;
   }
 
-  // Bigger core puffs for volume
-  const coreCount = 2 + Math.floor(Math.random() * 3);
+  // 1-2 core puffs
+  const coreCount = 1 + Math.floor(Math.random() * 2);
   for (let i = 0; i < coreCount; i++) {
-    const diam = (1.8 + Math.random() * 1.2) * cloudScale;
+    const diam = (1.2 + Math.random() * 0.8) * cloudScale;
     const core = MeshBuilder.CreateSphere(
       `core_${index}_${i}`,
-      { diameter: 1, segments: 8 },
+      { diameter: 1, segments: 6 },
       scene
     );
-    core.scaling.set(diam, diam * (0.35 + Math.random() * 0.15), diam);
+    core.scaling.set(diam, diam * (0.3 + Math.random() * 0.15), diam);
     core.material = mat;
     core.position.set(
-      (Math.random() - 0.5) * 1.5 * cloudScale,
-      (Math.random() - 0.3) * 0.3 * cloudScale,
-      (Math.random() - 0.5) * 1.0 * cloudScale
+      (Math.random() - 0.5) * 1.0 * cloudScale,
+      (Math.random() - 0.3) * 0.2 * cloudScale,
+      (Math.random() - 0.5) * 0.8 * cloudScale
     );
     core.parent = root;
   }
 
-  // Position cloud
-  // Camera looks from roughly (-PI/4 alpha, PI/3 beta) at radius 14-18
-  // That means camera is at roughly (+x, +y, -z) looking toward origin
-  // Place clouds in the VISIBLE hemisphere — mostly in front of the camera
   const angle = forceAngle ?? (Math.random() * Math.PI * 2);
-  const dist = forceDist ?? (8 + Math.random() * 20);
+  const dist = forceDist ?? (CLOUD_MIN_DIST + Math.random() * (CLOUD_MAX_DIST - CLOUD_MIN_DIST));
   const baseX = Math.cos(angle) * dist;
   const baseZ = Math.sin(angle) * dist;
   const baseY = forceY ?? (CLOUD_MIN_Y + Math.random() * (CLOUD_MAX_Y - CLOUD_MIN_Y));
@@ -100,30 +99,25 @@ function createSingleCloud(scene: Scene, index: number, forceAngle?: number, for
     baseX,
     baseZ,
     baseY,
-    driftSpeed: 0.05 + Math.random() * 0.12,
-    bobSpeed: 0.2 + Math.random() * 0.3,
-    bobAmount: 0.15 + Math.random() * 0.3,
+    driftSpeed: 0.03 + Math.random() * 0.08,
+    bobSpeed: 0.15 + Math.random() * 0.25,
+    bobAmount: 0.1 + Math.random() * 0.2,
     driftAngle: Math.random() * Math.PI * 2,
-    driftRadius: 1.5 + Math.random() * 3,
+    driftRadius: 1 + Math.random() * 2,
   };
 }
 
 export function createClouds(scene: Scene): void {
   disposeClouds();
 
-  // Camera is at alpha=-PI/4, so it looks from the +x/-z quadrant toward origin.
-  // Place several guaranteed-visible clouds in the camera's field of view.
-  // These are placed at angles that are roughly BEHIND the tower from camera POV,
-  // so they appear as backdrop.
-
-  // Guaranteed visible clouds — placed in the directions the camera can see
+  // Place clouds far from the tower so they never cover gameplay
   const guaranteedPositions = [
-    { angle: Math.PI * 0.6, dist: 12, y: 5 },
-    { angle: Math.PI * 0.8, dist: 15, y: 12 },
-    { angle: Math.PI * 1.0, dist: 10, y: 20 },
-    { angle: Math.PI * 1.2, dist: 14, y: 28 },
-    { angle: Math.PI * 0.4, dist: 16, y: 8 },
-    { angle: Math.PI * 1.4, dist: 12, y: 35 },
+    { angle: Math.PI * 0.5, dist: 28, y: 8 },
+    { angle: Math.PI * 0.8, dist: 32, y: 18 },
+    { angle: Math.PI * 1.0, dist: 25, y: 30 },
+    { angle: Math.PI * 1.3, dist: 30, y: 40 },
+    { angle: Math.PI * 0.2, dist: 35, y: 12 },
+    { angle: Math.PI * 1.6, dist: 28, y: 45 },
   ];
 
   for (let i = 0; i < guaranteedPositions.length; i++) {
@@ -131,12 +125,11 @@ export function createClouds(scene: Scene): void {
     clouds.push(createSingleCloud(scene, i, p.angle, p.dist, p.y));
   }
 
-  // Fill the rest randomly
   for (let i = guaranteedPositions.length; i < CLOUD_COUNT; i++) {
     clouds.push(createSingleCloud(scene, i));
   }
 
-  // Animate clouds
+  // Animate
   let time = Math.random() * 100;
   scene.onBeforeRenderObservable.add(() => {
     const dt = scene.getEngine().getDeltaTime() / 1000;
