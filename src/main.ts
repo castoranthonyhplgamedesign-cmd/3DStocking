@@ -12,10 +12,20 @@ import "@babylonjs/core/Lights/directionalLight";
 import { createScene } from "./scene";
 import { createUI } from "./ui";
 import { initGame } from "./game";
+import { waitForMRAIDReady, isMRAID } from "./mraid";
 
-const canvas = document.getElementById("gameCanvas") as HTMLCanvasElement;
-if (!canvas) throw new Error("Canvas not found");
+async function boot() {
+  // Wait for MRAID container if running inside an ad network
+  if (isMRAID()) {
+    await waitForMRAIDReady();
+  }
 
-const { engine, scene, camera } = createScene(canvas);
-const ui = createUI();
-initGame(scene, engine, camera, ui);
+  const canvas = document.getElementById("gameCanvas") as HTMLCanvasElement;
+  if (!canvas) throw new Error("Canvas not found");
+
+  const { engine, scene, camera } = createScene(canvas);
+  const ui = createUI();
+  initGame(scene, engine, camera, ui);
+}
+
+boot();

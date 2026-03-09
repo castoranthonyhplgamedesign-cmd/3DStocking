@@ -9,6 +9,8 @@ import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
 import { getBlockColor } from "./colors";
 import {
   BLOCK_HEIGHT,
+  INITIAL_BLOCK_SIZE,
+  STARTING_STACK,
   SWING_SPEED,
   SPEED_INCREMENT,
   MAX_SPEED,
@@ -43,14 +45,18 @@ import {
   updateActivePowerUps,
 } from "./ui";
 import { isHighScore, saveHighScore, getHighScores } from "./highscore";
+import { isPlayableMode, showCTA } from "./cta";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import {
+  burstLanding,
   burstPowerUpCollect,
   burstPerfect,
   burstFreeze,
   burstSlowMo,
   burstMagnet,
   burstExpand,
+  burstSlice,
+  burstGameOver,
 } from "./particles";
 import type { PowerUp, PowerUpType } from "./powerups";
 import {
@@ -61,6 +67,22 @@ import {
   disposePowerUp,
   getPowerUpLabel,
 } from "./powerups";
+import {
+  unlockAudio,
+  startMusic,
+  stopMusic,
+  playGameStart,
+  playDrop,
+  playPerfect,
+  playCombo,
+  playSlice,
+  playPowerUpCollect,
+  playMagnetActivate,
+  playExpandActivate,
+  playSlowMoActivate,
+  playFreezeActivate,
+  playGameOver,
+} from "./sound";
 
 type GameState = "READY" | "PLAYING" | "FROZEN" | "GAME_OVER";
 
@@ -72,6 +94,7 @@ interface GameContext {
   state: GameState;
   score: number;
   layer: number;
+  playerDrops: number; // blocks placed by the player (for speed ramp)
   axis: "x" | "z";
   speed: number;
   currentBlock: BlockState | null;
@@ -102,6 +125,7 @@ export function initGame(
     state: "READY",
     score: 0,
     layer: 0,
+    playerDrops: 0,
     axis: "x",
     speed: SWING_SPEED,
     currentBlock: null,
@@ -169,10 +193,13 @@ export function initGame(
 
 function handleInput(ctx: GameContext): void {
   if (ctx.state === "READY") {
+    unlockAudio();
     hideStartScreen(ctx.ui);
     ctx.state = "PLAYING";
     ctx.ui.scoreText.isVisible = true;
     updateScore(ctx.ui, ctx.score);
+    playGameStart();
+    startMusic();
     return;
   }
 
@@ -200,6 +227,7 @@ function applyPowerUp(ctx: GameContext, type: PowerUpType): void {
     case "magnet":
       ctx.hasMagnet = true;
       burstMagnet(ctx.scene, pos);
+      playMagnetActivate();
       updateActivePowerUps(ctx.ui, getActiveList(ctx));
       break;
     case "expand":
@@ -209,16 +237,19 @@ function applyPowerUp(ctx: GameContext, type: PowerUpType): void {
         prev.depth = Math.min(prev.depth + POWERUP_EXPAND_AMOUNT, POWERUP_EXPAND_MAX);
       }
       burstExpand(ctx.scene, pos);
+      playExpandActivate();
       break;
     case "slowmo":
       ctx.slowMoRemaining = POWERUP_SLOWMO_DURATION;
       burstSlowMo(ctx.scene, pos);
+      playSlowMoActivate();
       updateActivePowerUps(ctx.ui, getActiveList(ctx));
       break;
     case "freeze":
       ctx.freezeTimer = POWERUP_FREEZE_DURATION;
       ctx.state = "FROZEN";
       burstFreeze(ctx.scene, pos);
+      playFreezeActivate();
       updateActivePowerUps(ctx.ui, getActiveList(ctx));
       break;
   }
@@ -241,6 +272,7 @@ function dropBlock(ctx: GameContext): void {
     const puType = ctx.activePowerUp.type;
     const puPos = ctx.activePowerUp.mesh.position.clone();
     burstPowerUpCollect(scene, puPos, puType);
+    playPowerUpCollect();
     disposePowerUp(ctx.activePowerUp);
     ctx.activePowerUp = null;
     applyPowerUp(ctx, puType);
@@ -297,20 +329,28 @@ function dropBlock(ctx: GameContext): void {
 
     // Combo
     ctx.comboCount++;
+    playPerfect();
     if (ctx.comboCount >= COMBO_PERFECT_MIN) {
       showComboText(ctx.ui, ctx.comboCount);
+      playCombo(ctx.comboCount);
     }
-    // Perfect placement particles
+    // Perfect placement particles + landing impact
     burstPerfect(scene, perfectMesh.position.clone(), ctx.comboCount);
+    burstLanding(scene, perfectMesh.position.clone());
   } else {
     // Normal slice
     const result = sliceBlock(currentBlock, previousBlock, axis, scene, layer);
     if (!result) {
+      burstGameOver(scene, currentBlock.mesh.position.clone());
       animateOverhangFall(currentBlock.mesh, scene);
       gameOver(ctx);
       return;
     }
 
+    playDrop();
+    playSlice();
+    burstLanding(scene, result.survived.mesh.position.clone());
+    burstSlice(scene, result.overhang.position.clone());
     ctx.allMeshes.push(result.survived.mesh);
     animateOverhangFall(result.overhang, scene);
     ctx.previousBlock = result.survived;
@@ -324,8 +364,9 @@ function dropBlock(ctx: GameContext): void {
   const points = Math.floor(1 * multiplier);
   ctx.score += points;
   ctx.layer++;
+  ctx.playerDrops++;
   ctx.axis = ctx.axis === "x" ? "z" : "x";
-  ctx.speed = Math.min(SWING_SPEED + ctx.layer * SPEED_INCREMENT, MAX_SPEED);
+  ctx.speed = Math.min(SWING_SPEED + ctx.playerDrops * SPEED_INCREMENT, MAX_SPEED);
 
   // Slow-mo countdown
   if (ctx.slowMoRemaining > 0) {
@@ -364,10 +405,23 @@ function dropBlock(ctx: GameContext): void {
 
 function gameOver(ctx: GameContext): void {
   ctx.state = "GAME_OVER";
+  stopMusic();
+  playGameOver();
   disposePowerUp(ctx.activePowerUp);
   ctx.activePowerUp = null;
   updateActivePowerUps(ctx.ui, []);
 
+  // Playable ad mode: show CTA end card
+  if (isPlayableMode()) {
+    showCTA(ctx.score, () => {
+      resetGame(ctx);
+      showStartScreen(ctx.ui);
+      ctx.state = "READY";
+    });
+    return;
+  }
+
+  // Normal mode: high score flow
   if (isHighScore(ctx.score)) {
     showNameInput(ctx.ui, ctx.score);
     ctx.ui.onNameSubmit((name) => {
@@ -400,6 +454,7 @@ function resetGame(ctx: GameContext): void {
   ctx.allMeshes = [];
   ctx.score = 0;
   ctx.layer = 0;
+  ctx.playerDrops = 0;
   ctx.axis = "x";
   ctx.speed = SWING_SPEED;
   ctx.time = 0;
@@ -414,18 +469,45 @@ function resetGame(ctx: GameContext): void {
 
   updateActivePowerUps(ctx.ui, []);
 
+  // Build pre-stacked tower
   const base = createBaseBlock(ctx.scene);
   ctx.allMeshes.push(base.mesh);
   ctx.previousBlock = base;
 
-  ctx.layer = 1;
+  for (let i = 1; i <= STARTING_STACK; i++) {
+    const y = i * BLOCK_HEIGHT;
+    const mesh = MeshBuilder.CreateBox(
+      `prestack_${i}`,
+      { width: INITIAL_BLOCK_SIZE, height: BLOCK_HEIGHT, depth: INITIAL_BLOCK_SIZE },
+      ctx.scene
+    );
+    const mat = new StandardMaterial(`mat_prestack_${i}`, ctx.scene);
+    mat.diffuseColor = getBlockColor(i);
+    mat.specularColor = new Color3(0.2, 0.2, 0.2);
+    mesh.material = mat;
+    mesh.position.set(0, y, 0);
+    ctx.allMeshes.push(mesh);
+    ctx.previousBlock = {
+      mesh,
+      width: INITIAL_BLOCK_SIZE,
+      depth: INITIAL_BLOCK_SIZE,
+      x: 0,
+      z: 0,
+      y,
+    };
+  }
+
+  ctx.layer = STARTING_STACK + 1;
+  ctx.cameraTargetY = ctx.layer * BLOCK_HEIGHT + 2;
+  ctx.camera.target.y = ctx.cameraTargetY;
+
   ctx.currentBlock = createBlock(
     ctx.scene,
     ctx.layer,
-    base.width,
-    base.depth,
-    base.x,
-    base.z,
+    ctx.previousBlock.width,
+    ctx.previousBlock.depth,
+    ctx.previousBlock.x,
+    ctx.previousBlock.z,
     ctx.axis
   );
 

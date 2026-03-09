@@ -1,9 +1,10 @@
 export const BLOCK_HEIGHT = 0.5;
 export const INITIAL_BLOCK_SIZE = 3.0;
+export const STARTING_STACK = 25;
 export const SWING_RANGE = 6.0;
-export const SWING_SPEED = 4.0;
-export const SPEED_INCREMENT = 0.12;
-export const MAX_SPEED = 12.0;
+export const SWING_SPEED = 2.5;         // starting speed (slower, more forgiving)
+export const SPEED_INCREMENT = 0.08;    // gradual ramp per player-placed block
+export const MAX_SPEED = 10.0;
 export const CAMERA_OFFSET_Y = 6.0;
 export const CAMERA_LERP_SPEED = 0.05;
 export const FALL_GRAVITY = 15.0;
