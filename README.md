@@ -2,6 +2,8 @@
 
 A 3D tower stacking game built with Babylon.js. Blocks slide back and forth — tap at the right moment to stack them. Any overhanging part gets sliced off and tumbles away. The platform shrinks with each miss, so precision matters. Stack as high as you can!
 
+![Game Screenshot](screenshot.png)
+
 ## How to Play
 
 1. **Tap / Click / Spacebar** to drop the moving block
@@ -47,8 +49,55 @@ npm run dev
 
 Open the local URL shown in the terminal. Works on desktop and mobile browsers.
 
+## Playable Ad Build
+
+This game is built as a **playable ad** and is compatible with the following ad networks and management platforms:
+
+| Platform | Status |
+|----------|--------|
+| **ironSource (Unity LevelPlay)** | Compatible |
+| **Unity Ads** | Compatible |
+| **AppLovin (MAX)** | Compatible |
+| **Meta (Facebook) Playable Ads** | Compatible |
+| **Google Ad Manager (DV360)** | Compatible |
+| **Vungle (Liftoff)** | Compatible |
+| **Mintegral** | Compatible |
+| **AdColony** | Compatible |
+| **Playworks (ironSource)** | Compatible — tested and verified |
+| **MRAID-compliant networks** | Compatible |
+
+### Building
+
+```bash
+npm run build:playable
+```
+
+Output: `dist-playable/index.html` — single self-contained HTML file (~1.8MB, 425KB gzipped).
+
+### Ad Network Features
+
+- **MRAID 2.0 support** — `mraid.open()`, `viewableChange`, `ready` state handling
+- **Viewability tracking** — audio automatically pauses when ad is not visible (required by ironSource, Unity Ads, AppLovin)
+- **Single-file HTML** — all assets inlined, no external dependencies. Under 5MB limit for all major networks
+- **CTA end card** — full-screen clickable overlay with "DOWNLOAD NOW" button. Auto-detects iOS vs Android and opens the correct app store
+- **Touch-optimized** — `touch-action: none`, no scroll bounce, no zoom, no text selection
+- **No external requests** — all sounds are procedurally generated, all textures are procedural. Zero network calls after load
+- **Responsive** — works in portrait and landscape, adapts to any screen size or ad container
+- **`ad.size` and `ad.orientation` meta tags** — for network parsers that read creative metadata
+
+## Build for Production
+
+```bash
+npm run build
+```
+
+Output goes to `dist/`.
+
 ## Tech Stack
 
 - **Babylon.js** — 3D engine, GUI, particle systems
 - **TypeScript**
 - **Vite** — dev server and bundler
+- **vite-plugin-singlefile** — single HTML output for playable ads
+- **Web Audio API** — procedural sound effects and background music (no audio files)
+- **MRAID** — ad network compatibility
